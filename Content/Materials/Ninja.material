@@ -1,0 +1,23 @@
+
+material Examples/Ninja
+{
+	receive_shadows on
+	technique
+	{
+		pass
+		{
+			ambient 1 1 1 1
+			diffuse 1 1 1 1
+			specular 1 1 1 1 12.5
+			emissive 0 0 0 1
+			texture_unit
+			{
+				texture nskingr.jpg
+				tex_address_mode wrap
+				filtering trilinear
+				colour_op modulate
+			}
+		}
+	}
+}
+

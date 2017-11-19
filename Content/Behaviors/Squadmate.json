@@ -1,0 +1,17 @@
+
+{
+	"Type":"ParallelBehavior",
+	"Children":
+	[
+		{
+			"Type":"AIFollowCharacter",
+			"Character":"player_character",
+			"Radius":25.0
+		},
+		{
+			"Type":"AITurnTowardsCharacter",
+			"Character":"player_character",
+			"Epsilon":0.0001
+		}
+	]
+}
