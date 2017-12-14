@@ -50,10 +50,10 @@ private:
 	
 	IWeaponController *controller;
 	
-	const unsigned int max_cycles = 5;
+	const unsigned int max_cycles = 7;
 	unsigned int current_cycles = 0;
 	
-	const unsigned int max_melee_cycles = 25;
+	const unsigned int max_melee_cycles = 15;
 	unsigned int current_melee_cycles = 0;
 	
 public:

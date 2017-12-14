@@ -5,13 +5,14 @@
 
 #include <iostream>
 
-bool GlobalCollisionCallback(btManifoldPoint& cp, void* body0, void* body1)
+//bool GlobalCollisionCallback(btManifoldPoint& cp, void* body0, void* body1)
+bool GlobalCollisionCallback(btManifoldPoint& cp,const btCollisionObjectWrapper* colObj0Wrap,int partId0,int index0,const btCollisionObjectWrapper* colObj1Wrap,int partId1,int index1)
 {
-	btRigidBody *rigidbody0 = (btRigidBody*)body0;
-	btRigidBody *rigidbody1 = (btRigidBody*)body1;
+	//btRigidBody *rigidbody0 = (btRigidBody*)body0;
+	//btRigidBody *rigidbody1 = (btRigidBody*)body1;
 	
-	ICollisionCallback *body0_callback = (ICollisionCallback *)rigidbody0->getUserPointer();
-	ICollisionCallback *body1_callback = (ICollisionCallback *)rigidbody1->getUserPointer();
+	ICollisionCallback *body0_callback = (ICollisionCallback *)colObj0Wrap->getCollisionObject()->getUserPointer();
+	ICollisionCallback *body1_callback = (ICollisionCallback *)colObj1Wrap->getCollisionObject()->getUserPointer();
 	
 	if(body0_callback != nullptr)
 	{
@@ -23,7 +24,7 @@ bool GlobalCollisionCallback(btManifoldPoint& cp, void* body0, void* body1)
 		body1_callback->AcceptCollision(body0_callback);
 	}
 	
-	return true;
+	return false;
 }
 
 BulletWorldWrapper::BulletWorldWrapper(const btVector3 &gravity)
@@ -36,5 +37,6 @@ BulletWorldWrapper::BulletWorldWrapper(const btVector3 &gravity)
 	dynamics_world.reset(new btDiscreteDynamicsWorld(dispatcher.get(),broadphase_interface.get(),constraint_solver.get(),collision_configuration.get()));
 	dynamics_world->setGravity(gravity);
 	
-	gContactProcessedCallback = GlobalCollisionCallback;
+	//gContactProcessedCallback = GlobalCollisionCallback;
+	gContactAddedCallback = GlobalCollisionCallback;
 }

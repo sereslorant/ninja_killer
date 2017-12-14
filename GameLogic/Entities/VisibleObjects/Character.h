@@ -45,7 +45,7 @@ protected:
 	WeaponState weapon_state;
 	ShootingObject shooting_object;
 	
-	float health = 500.0;
+	float health = 1000.0;
 	unsigned int species;
 	
 	std::list<ICharacterObserver *> char_observers;
