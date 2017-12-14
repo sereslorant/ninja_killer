@@ -27,7 +27,7 @@ public:
 	
 	virtual void AcceptCollision(ICollisionCallback *callback) override
 	{
-		if(active && callback != nullptr && callback->GetSpecies() != species)
+		if(active && callback != nullptr /*&& callback->GetSpecies() != species*/)
 		{
 			callback->TakeDamage(50.0);
 			active = false;

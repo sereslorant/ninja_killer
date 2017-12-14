@@ -20,6 +20,7 @@ class IProjectileFactory
 {
 public:
 	virtual void SpawnBullet(const btVector3 &position,const btVector3 &velocity,float radius,unsigned int species) = 0;
+	virtual void Melee(const btVector3 &position,const btVector3 &velocity,float damage,unsigned int species) = 0;
 	
 	IProjectileFactory()
 	{}
@@ -51,6 +52,9 @@ private:
 	
 	const unsigned int max_cycles = 5;
 	unsigned int current_cycles = 0;
+	
+	const unsigned int max_melee_cycles = 25;
+	unsigned int current_melee_cycles = 0;
 	
 public:
 	
@@ -96,10 +100,21 @@ public:
 			current_cycles++;
 		}
 		
+		if(current_melee_cycles < max_melee_cycles)
+		{
+			current_melee_cycles++;
+		}
+		
 		if(IsShooting() && (current_cycles >= max_cycles))
 		{
 			projectile_factory.SpawnBullet(weapon_state.GetMuzzlePosition(),250.0 * weapon_state.GetMuzzleDirection(),0.75,species);
 			current_cycles = 0;
+		}
+		
+		if(IsMelee() && (current_melee_cycles >= max_melee_cycles))
+		{
+			projectile_factory.Melee(weapon_state.GetMuzzlePosition(),15.0 * weapon_state.GetMuzzleDirection(),50,species);
+			current_melee_cycles = 0;
 		}
 	}
 	

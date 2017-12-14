@@ -56,6 +56,20 @@ private:
 	
 public:
 	
+	btRigidBody *raytrace(const btVector3 &begin,const btVector3 &direction)
+	{
+		btVector3 end = begin + direction;
+		btCollisionWorld::ClosestRayResultCallback result(begin, end);
+
+		dynamics_world->rayTest(begin, end, result);
+
+		if(result.hasHit()){
+			return (btRigidBody *)result.m_collisionObject;
+		}
+		
+		return nullptr;
+	}
+	
 	btRigidBody *createBody(btRigidBody::btRigidBodyConstructionInfo &construction_info)
 	{
 		btRigidBody *rigid_body = new btRigidBody(construction_info);

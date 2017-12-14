@@ -184,6 +184,20 @@ public:
 		entity_manager.AddProjectile(projectile);
 	}
 	
+	virtual void Melee(const btVector3 &position,const btVector3 &velocity,float damage,unsigned int species) override
+	{
+		btRigidBody *meleed_body = world.raytrace(position,velocity);
+		
+		if(meleed_body != nullptr)
+		{
+			ICollisionCallback *meleed_callback = (ICollisionCallback *)meleed_body->getUserPointer();
+			if(meleed_callback != nullptr && meleed_callback->GetSpecies() != species)
+			{
+				meleed_callback->TakeDamage(damage);
+			}
+		}
+	}
+	
 	ProjectileFactory(BulletWorldWrapper &p_world,EntityManager &p_entity_manager)
 		:world(p_world),entity_manager(p_entity_manager)
 	{}
