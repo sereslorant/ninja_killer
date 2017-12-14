@@ -7,7 +7,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/CMake/)
 find_package(OGRE REQUIRED)
 find_package(OIS REQUIRED)
 
-set(BULLET_INCLUDE_DIRS Bullet/src/)
+set(BULLET_INCLUDE_DIRS bullet3-master/src/)
 
 set(BULLET_LIBRARIES	BulletDynamics
 						BulletCollision
@@ -30,4 +30,4 @@ add_subdirectory(GameLogicTest)
 set(BUILD_BULLET3 FALSE)
 
 add_subdirectory(lJSON)
-add_subdirectory(Bullet)
+add_subdirectory(bullet3-master)

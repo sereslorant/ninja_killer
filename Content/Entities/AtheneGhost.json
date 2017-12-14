@@ -1,0 +1,18 @@
+
+{
+	"visible":
+	{
+		"label":"Athene",
+	},
+	"body":
+	{
+		"type":"simple",
+		"position":[0.0,0.0,0.0],
+		"orientation":
+		{
+			"angle":0.2,
+			"axis":[1.0,1.0,1.0]
+		},
+	}
+}
+

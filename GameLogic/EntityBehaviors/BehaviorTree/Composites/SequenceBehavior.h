@@ -7,12 +7,19 @@ template<class ContextType_T>
 class SequenceBehavior : public CompositeBehaviorBase<ContextType_T>
 {
 private:
-	unsigned int current_behavior = 0;
+	//unsigned int current_behavior = 0;
 	
 public:
 	
 	virtual BehaviorState Run(ContextType_T &context) override
 	{
+		unsigned int current_behavior = 0;
+		if(context.GetBehaviorPath().size() != 0)
+		{
+			current_behavior = context.GetBehaviorPath().back();
+			context.GetBehaviorPath().pop_back();
+		}
+		
 		BehaviorState last_child_state = SUCCEEDED;
 		for(;current_behavior < this->children.size();current_behavior++)
 		{
@@ -33,8 +40,11 @@ public:
 		
 		if(current_behavior == this->children.size())
 		{
+			//std::cout << "Back to begin: " << current_behavior << ";" << this->children.size() << std::endl;
 			current_behavior = 0;
 		}
+		
+		context.GetBehaviorPath().push_back(current_behavior);
 		
 		return last_child_state;
 	}

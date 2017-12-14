@@ -6,8 +6,7 @@
 class AIMovementController : public IMovementController
 {
 private:
-	IControllable &controllable;
-	TargetMovementState target_state = {};
+	MovementState target_state = {};
 	
 public:
 	
@@ -31,13 +30,12 @@ public:
 		target_state.yaw = yaw;
 	}
 	
-	virtual TargetMovementState CalculateTargetState() override
+	virtual MovementState CalculateTargetState(const MovementState &current_state) override
 	{
 		return target_state;
 	}
 	
-	AIMovementController(IControllable &p_controllable)
-		:controllable(p_controllable)
+	AIMovementController()
 	{}
 	
 	virtual ~AIMovementController() override

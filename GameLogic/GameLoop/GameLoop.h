@@ -2,55 +2,100 @@
 #define GAME_LOOP_H
 
 #include <Entities/Camera.h>
-#include <Entities/VisibleObjects/Character.h>
-
-#include <Entities/VisibleObjects/SimpleVisibleObjectState.h>
 
 #include <Physics/BulletWorldWrapper.h>
+#include <GameLoop/BehaviorManager/BehaviorManager.h>
+#include <GameLoop/EntityManager/EntityManager.h>
 
-#include <Entities/PhysicsObjects/BulletVisibleObjectState.h>
-#include <Entities/PhysicsObjects/BulletControllable.h>
 
-#include "IGameLoop.h"
+#include <IGameLoop.h>
 
 #include <EntityBehaviors/BehaviorTree/IBehavior.h>
 
 #include <EntityBehaviors/Character/AIController/AIContext.h>
 
 #include <EntityBehaviors/Character/AIController/AIMovementController.h>
+#include <EntityBehaviors/Character/AIController/AILookController.h>
 #include <EntityBehaviors/Character/AIController/AIWeaponController.h>
 
-class AIController
+class AIEntity : public IEntity
 {
 private:
+	std::list<unsigned int> behavior_path;
+	
 	Character &character;
 	IBehavior<AIContext> *default_behavior = nullptr;
 	
+	AIMovementController movement_controller;
+	AILookController look_controller;
+	AIWeaponController weapon_controller;
+	
 public:
 	
-	AIMovementController movement_controller;
-	AIWeaponController weapon_controller;
+	class AIEntityPercept
+	{
+	private:
+		AIEntity *entity;
+		
+	public:
+		
+		void CheckCharacter(Character *character)
+		{
+			if(character->GetSpecies() != entity->character.GetSpecies())
+			{
+				auto I = entity->labeled_characters.find("closest_enemy");
+				if(I != entity->labeled_characters.end())
+				{
+					Character *closest_character = I->second;
+					
+					float current_distance = (closest_character->GetPosition() - entity->character.GetPosition()).length2();
+					float new_distance = (character->GetPosition() - entity->character.GetPosition()).length2();
+					if(new_distance < current_distance)
+					{
+						entity->labeled_characters["closest_enemy"] = character;
+					}
+				}
+				else
+				{
+					entity->labeled_characters["closest_enemy"] = character;
+				}
+			}
+		}
+		
+		AIEntityPercept(AIEntity *p_entity)
+			:entity(p_entity)
+		{}
+	};
+	
+	AIEntityPercept percept;
+	
+	std::map<std::string,Character *> labeled_characters;
 	
 	void SetBehavior(IBehavior<AIContext> *behavior)
 	{
 		default_behavior = behavior;
 	}
 	
-	void Step()
+	virtual void Step() override
 	{
+		weapon_controller.SetState(false,false,false);
+		
 		if(default_behavior != nullptr)
 		{
-			AIContext context(character,movement_controller);
+			AIContext context(behavior_path,labeled_characters,character,movement_controller,look_controller,weapon_controller);
 			
 			default_behavior->Run(context);
 		}
 	}
 	
-	AIController(Character &p_character,IControllable &p_controllable)
-		:character(p_character),movement_controller(p_controllable)
+	AIEntity(Character &p_character)
+		:character(p_character),percept(this)
 	{
 		character.SetMovementController(&movement_controller);
+		character.SetLookController(&look_controller);
 		character.SetWeaponController(&weapon_controller);
+		
+		movement_controller.SetYaw(character.GetYaw());
 	}
 };
 
@@ -59,42 +104,92 @@ public:
 #include <PlayerController/PlayerWeaponController.h>
 #include <PlayerController/PlayerCameraController.h>
 
-class PlayerController
+class PlayerEntity : public IEntity
 {
-public:
+private:
 	PlayerMovementController movement_controller;
 	PlayerLookController look_controller;
 	PlayerWeaponController weapon_controller;
 	
 	PlayerCameraController camera_controller;
 	
-	void Step()
+public:
+	
+	virtual void Step() override
 	{
 		camera_controller.Step();
 	}
 	
-	PlayerController(IControllable &p_controllable,Character &p_tracked_entity,Camera &p_camera,const IController &p_controller)
-		:movement_controller(p_controllable,p_controller),
+	PlayerEntity(Character &character,Camera &p_camera,const IController &p_controller)
+		:movement_controller(p_controller),
 		 look_controller(p_controller),
 		 weapon_controller(p_controller),
-		 camera_controller(p_tracked_entity,p_camera,p_controller)
+		 camera_controller(character,p_camera,p_controller)
 	{
-		Character &character = p_tracked_entity;
-		
 		character.SetMovementController(&movement_controller);
 		character.SetLookController(&look_controller);
 		character.SetWeaponController(&weapon_controller);
 	}
 };
 
-#include <GameLoop/BehaviorManager/BehaviorTreeLoader/ParallelBehaviorLoader.h>
-
-#include <GameLoop/BehaviorManager/AIBehaviorLoader/AIFollowCharacterLoader.h>
-#include <GameLoop/BehaviorManager/AIBehaviorLoader/AITurnTowardsCharacterLoader.h>
 
 
-#include "EntityManager/EntityManager.h"
+#include "EntityManager/ObjectLoader/VisibleObjectLoader.h"
+#include "EntityManager/ObjectLoader/CharacterLoader.h"
 
+
+
+#include <GameLoop/BehaviorManager/BehaviorTreeLoader/CompositeLoader/ParallelBehaviorLoader.h>
+#include <GameLoop/BehaviorManager/BehaviorTreeLoader/CompositeLoader/SequenceBehaviorLoader.h>
+#include <GameLoop/BehaviorManager/BehaviorTreeLoader/CompositeLoader/SelectorBehaviorLoader.h>
+
+#include <GameLoop/BehaviorManager/BehaviorTreeLoader/DecoratorLoader/LiarBehaviorLoader.h>
+
+
+#include <GameLoop/BehaviorManager/AIBehaviorLoader/Conditions/AICharacterWithinRangeLoader.h>
+
+#include <GameLoop/BehaviorManager/AIBehaviorLoader/LookActions/AILookAtCharacterLoader.h>
+#include <GameLoop/BehaviorManager/AIBehaviorLoader/MovementActions/AIFollowCharacterLoader.h>
+#include <GameLoop/BehaviorManager/AIBehaviorLoader/MovementActions/AITurnTowardsCharacterLoader.h>
+
+#include <GameLoop/BehaviorManager/AIBehaviorLoader/WeaponActions/AIAimLoader.h>
+#include <GameLoop/BehaviorManager/AIBehaviorLoader/WeaponActions/AIShootLoader.h>
+#include <GameLoop/BehaviorManager/AIBehaviorLoader/WeaponActions/AIMeleeLoader.h>
+
+#include <Entities/VisibleObjects/Projectile.h>
+
+class ProjectileFactory : public IProjectileFactory
+{
+private:
+	BulletWorldWrapper &world;
+	EntityManager &entity_manager;
+	
+public:
+	virtual void SpawnBullet(const btVector3 &position,const btVector3 &velocity,float radius,unsigned int species) override
+	{
+		BulletBodyBuilder body_builder(world);
+		
+		body_builder.CreateSphere().SetRadius(radius).Build();
+		
+		btRigidBody *projectile_body = body_builder.SetMass(0.25).SetPosition(position).SetVelocity(velocity).Build();
+		
+		IVisibleObjectState *visible_state = new BulletVisibleObjectState(projectile_body);
+		Projectile *projectile = new Projectile(visible_state,"Projectile",species);
+		
+		ICollisionCallback *projectile_callback = projectile;
+		projectile_body->setUserPointer(projectile_callback);
+		
+		//projectile_body->forceActivationState(DISABLE_DEACTIVATION);
+		
+		entity_manager.AddProjectile(projectile);
+	}
+	
+	ProjectileFactory(BulletWorldWrapper &p_world,EntityManager &p_entity_manager)
+		:world(p_world),entity_manager(p_entity_manager)
+	{}
+	virtual ~ProjectileFactory() override
+	{}
+};
 
 class GameLoop : public IGameLoop
 {
@@ -102,50 +197,13 @@ private:
 	BulletWorldWrapper world;
 	
 	EntityManager entity_manager;
-	
 	BehaviorManager behavior_loader;
+	
+	ProjectileFactory projectile_factory;
 	
 	Camera test_camera;
 	
-	std::unique_ptr<PlayerController> test_player_controller;
-	std::unique_ptr<AIController> ai;
-	
-	btRigidBody *AddSphere(const btVector3 &position,const btVector3 &velocity,btScalar mass,btScalar radius,const btVector3 &angular_factor)
-	{
-		btTransform transform;
-		transform.setIdentity();
-		transform.setOrigin(position);
-		
-		btSphereShape *sphere = new btSphereShape(radius);
-		btMotionState *motion_state = new btDefaultMotionState(transform);
-		
-		btVector3 local_inertia(0.0,0.0,0.0);
-		if(mass > 0.0)
-		{
-			sphere->calculateLocalInertia(mass,local_inertia);
-		}
-		
-		btRigidBody::btRigidBodyConstructionInfo ConstructionInfo(mass,motion_state,sphere,local_inertia);
-		btRigidBody *rigid_body = world.createBody(ConstructionInfo);
-		rigid_body->setLinearVelocity(velocity);
-		
-		rigid_body->setAngularFactor(angular_factor);
-		
-		return rigid_body;
-	}
-
-	void Init()
-	{
-		btTransform Transform;
-		Transform.setIdentity();
-		Transform.setOrigin(btVector3(0.0,0.0,0.0));
-		
-		btStaticPlaneShape *Plane = new btStaticPlaneShape(btVector3(0.0,1.0,0.0),0.0);
-		btMotionState *MotionState = new btDefaultMotionState(Transform);
-		
-		btRigidBody::btRigidBodyConstructionInfo ConstructionInfo(0.0,MotionState,Plane);
-		btRigidBody *rigid_body = world.createBody(ConstructionInfo);
-	}
+	std::unique_ptr<PlayerEntity> test_player_controller;
 	
 public:
 	
@@ -153,87 +211,429 @@ public:
 	{
 		world.stepSimulation(1.0/60.0);
 		
-		entity_manager.UpdateEntities();
-		
 		test_camera.Step();
 		
+		entity_manager.UpdateEntities();
+		
 		test_player_controller->Step();
-		ai->Step();
 	}
 	
 	GameLoop(const IController &p_test_controller,IEntityObserverFactory &observer_factory)
+		:entity_manager(observer_factory),projectile_factory(world,entity_manager)
 	{
 		test_camera.AddObserver(observer_factory.CreateCameraObserver());
 		
+		new LiarBehaviorLoader(behavior_loader);
+		
 		new ParallelBehaviorLoader(behavior_loader);
+		new SequenceBehaviorLoader(behavior_loader);
+		new SelectorBehaviorLoader(behavior_loader);
+		
+		new AICharacterWithinRangeLoader(behavior_loader,entity_manager);
+		
+		new AILookAtCharacterLoader(behavior_loader,entity_manager);
 		new AIFollowCharacterLoader(behavior_loader,entity_manager);
 		new AITurnTowardsCharacterLoader(behavior_loader,entity_manager);
+		
+		new AIAimLoader(behavior_loader,entity_manager);
+		new AIShootLoader(behavior_loader,entity_manager);
+		new AIMeleeLoader(behavior_loader,entity_manager);
 		
 		/*
 		 * Adding simple stuff
 		 */
-		
-		for(int i=0;i < 7;i++)
+		/*
+		for(int i=0;i < 5;i++)
 		{
-			SimpleVisibleObjectState *visible_state = new SimpleVisibleObjectState({0.0f,0.0f,-100.0f - i * 50.0f},{{0.0,1.0,0.0},0.0});
-			VisibleObject *visible = new VisibleObject(visible_state,"Archway.mesh");
+			SimpleVisibleObjectState *visible_state = new SimpleVisibleObjectState({0.0f,0.0f,50.0f - i * 50.0f},{{0.0,1.0,0.0},0.0});
+			VisibleObject *visible = new VisibleObject(visible_state,"Archway");
 			
-			visible->AddObserver(observer_factory.CreateEntityObserver());
+			entity_manager.AddVisibleObject(visible);
+		}
+		*/
+		{
+			std::ifstream fin("Content/Entities/AtheneGhost.json");
 			
-			if(i == 5)
-			{visible->SetLabel("Athene.mesh");}
+			liJSON_Value *json;
+			lJSON_Util::Parse(fin,json);
 			
-			if(i == 6)
-			{visible->SetLabel("ninja.mesh");}
-			
-			//simple_stuff.emplace_back(visible);
-			entity_manager.AddEntity(visible);
+			{
+				std::unique_ptr<liJSON_Value> value(json);
+				
+				VisibleObjectLoader visible_loader(world);
+				visible_loader.Load(ToConstObject(value.get()));
+				
+				visible_loader.SetPosition({0.0f,0.0f,-200.0f});
+				
+				VisibleObject *visible = visible_loader.Build();
+				entity_manager.AddVisibleObject(visible);
+			}
 		}
 		
-		SimpleVisibleObjectState *visible_state = new SimpleVisibleObjectState({0.0f,0.0f,0.0f},{{0.0,1.0,0.0},0.0});
-		VisibleObject *visible = new VisibleObject(visible_state,"level1.mesh");
-		
-		visible->AddObserver(observer_factory.CreateEntityObserver());
-		//simple_stuff.emplace_back(visible);
-		entity_manager.AddEntity(visible);
+		{
+			std::ifstream fin("Content/Entities/RoomEntity.json");
+			
+			liJSON_Value *json;
+			lJSON_Util::Parse(fin,json);
+			
+			{
+				std::unique_ptr<liJSON_Value> value(json);
+				
+				VisibleObjectLoader visible_loader(world);
+				visible_loader.Load(ToConstObject(value.get()));
+				
+				VisibleObject *visible = visible_loader.Build();
+				
+				entity_manager.AddVisibleObject(visible);
+			}
+		}
 		
 		/*
 		 * Adding test phys mesh
 		 */
 		
-		BulletVisibleObjectState *test_visible_state = new BulletVisibleObjectState(AddSphere({0.0,0.0,20.0},{0.0,0.0,0.0},5.0,5.0,{1.0,1.0,1.0}));
+		{
+			std::ifstream fin("Content/Entities/Explosive.json");
+			
+			liJSON_Value *json;
+			lJSON_Util::Parse(fin,json);
+			
+			{
+				std::unique_ptr<liJSON_Value> value(json);
+				
+				VisibleObjectLoader visible_loader(world);
+				
+				visible_loader.Load(ToConstObject(value.get()));
+				
+				visible_loader.SetPosition({0.0,0.0,20.0});
+				
+				VisibleObject *test_visible = visible_loader.Build();
+				
+				entity_manager.AddVisibleObject(test_visible);
+			}
+		}
 		
-		VisibleObject *test_visible = new VisibleObject(test_visible_state,"explosive.mesh");
-		test_visible->AddObserver(observer_factory.CreateEntityObserver());
+		{
+			std::ifstream fin("Content/Entities/Soldier.json");
+			
+			liJSON_Value *json;
+			lJSON_Util::Parse(fin,json);
+			
+			{
+				std::unique_ptr<liJSON_Value> value(json);
+				
+				CharacterLoader character_loader(world,projectile_factory);
+				
+				character_loader.Load(ToConstObject(value.get()));
+				
+				character_loader.SetPosition({0.0,0.0,0.0});
+				character_loader.SetSpecies(0);
+				
+				Character *test_character = character_loader.Build();
+				
+				test_player_controller = std::unique_ptr<PlayerEntity>(new PlayerEntity(*test_character,test_camera,p_test_controller));
+				
+				//entity_manager.AddEntity(test_player_controller);
+				entity_manager.AddNamedCharacter("player_character",test_character);
+			}
+		}
 		
-		entity_manager.AddEntity(test_visible);
+		{
+			std::ifstream fin("Content/Entities/Ninja.json");
+			
+			liJSON_Value *json;
+			lJSON_Util::Parse(fin,json);
+			
+			{
+				std::unique_ptr<liJSON_Value> value(json);
+				
+				CharacterLoader character_loader(world,projectile_factory);
+				
+				character_loader.Load(ToConstObject(value.get()));
+				
+				character_loader.SetPosition({ 110.0,0.0,0.0});
+				character_loader.SetOrientation({{0.0,1.0,0.0},-PI/2.0});
+				character_loader.SetSpecies(1);
+				
+				Character *test_character = character_loader.Build();
+				
+				AIEntity *ninja_ai = new AIEntity(*test_character);
+				ninja_ai->SetBehavior(behavior_loader.GetBehavior("enemy_behavior"));
+				
+				entity_manager.AddCharacterFilter([ninja_ai](Character *character)
+					{
+						ninja_ai->percept.CheckCharacter(character);
+					}
+				);
+				
+				entity_manager.AddEntity(ninja_ai);
+				entity_manager.AddCharacter(test_character);
+			}
+		}
 		
-		btRigidBody *test_rigid_body = AddSphere({0.0,0.0,0.0},{0.0,0.0,0.0},5.0,5.0,{0.0,1.0,0.0});
-		BulletVisibleObjectState *test_character_visible = new BulletVisibleObjectState(test_rigid_body);
-		BulletControllable *test_character_controllable = new BulletControllable(test_rigid_body);
+		{
+			std::ifstream fin("Content/Entities/Ninja.json");
+			
+			liJSON_Value *json;
+			lJSON_Util::Parse(fin,json);
+			
+			{
+				std::unique_ptr<liJSON_Value> value(json);
+				
+				CharacterLoader character_loader(world,projectile_factory);
+				
+				character_loader.Load(ToConstObject(value.get()));
+				
+				character_loader.SetPosition({130.0,0.0,0.0});
+				character_loader.SetOrientation({{0.0,1.0,0.0},-PI/2.0});
+				character_loader.SetSpecies(1);
+				
+				Character *test_character = character_loader.Build();
+				
+				AIEntity *ninja_ai = new AIEntity(*test_character);
+				ninja_ai->SetBehavior(behavior_loader.GetBehavior("enemy_behavior"));
+				
+				entity_manager.AddCharacterFilter([ninja_ai](Character *character)
+					{
+						ninja_ai->percept.CheckCharacter(character);
+					}
+				);
+				
+				entity_manager.AddEntity(ninja_ai);
+				entity_manager.AddCharacter(test_character);
+			}
+		}
 		
-		Character *test_character = new Character(test_character_visible,"soldier.mesh",test_character_controllable);
-		test_character->AddObserver(observer_factory.CreateCharacterObserver());
+		{
+			std::ifstream fin("Content/Entities/Ninja.json");
+			
+			liJSON_Value *json;
+			lJSON_Util::Parse(fin,json);
+			
+			{
+				std::unique_ptr<liJSON_Value> value(json);
+				
+				CharacterLoader character_loader(world,projectile_factory);
+				
+				character_loader.Load(ToConstObject(value.get()));
+				
+				character_loader.SetPosition({150.0,0.0,0.0});
+				character_loader.SetOrientation({{0.0,1.0,0.0},-PI/2.0});
+				character_loader.SetSpecies(1);
+				
+				Character *test_character = character_loader.Build();
+				
+				AIEntity *ninja_ai = new AIEntity(*test_character);
+				ninja_ai->SetBehavior(behavior_loader.GetBehavior("enemy_behavior"));
+				
+				entity_manager.AddCharacterFilter([ninja_ai](Character *character)
+					{
+						ninja_ai->percept.CheckCharacter(character);
+					}
+				);
+				
+				entity_manager.AddEntity(ninja_ai);
+				entity_manager.AddCharacter(test_character);
+			}
+		}
 		
-		entity_manager.AddNamedCharacter("player_character",test_character);
+		{
+			std::ifstream fin("Content/Entities/Ninja.json");
+			
+			liJSON_Value *json;
+			lJSON_Util::Parse(fin,json);
+			
+			{
+				std::unique_ptr<liJSON_Value> value(json);
+				
+				CharacterLoader character_loader(world,projectile_factory);
+				
+				character_loader.Load(ToConstObject(value.get()));
+				
+				character_loader.SetPosition({-110.0,0.0,0.0});
+				character_loader.SetOrientation({{0.0,1.0,0.0},PI/2.0});
+				character_loader.SetSpecies(1);
+				
+				Character *test_character = character_loader.Build();
+				
+				AIEntity *ninja_ai = new AIEntity(*test_character);
+				ninja_ai->SetBehavior(behavior_loader.GetBehavior("enemy_behavior"));
+				
+				entity_manager.AddCharacterFilter([ninja_ai](Character *character)
+					{
+						ninja_ai->percept.CheckCharacter(character);
+					}
+				);
+				
+				entity_manager.AddEntity(ninja_ai);
+				entity_manager.AddCharacter(test_character);
+			}
+		}
 		
-		test_player_controller = std::unique_ptr<PlayerController>(new PlayerController(*test_character_controllable,*test_character,test_camera,p_test_controller));
+		{
+			std::ifstream fin("Content/Entities/Ninja.json");
+			
+			liJSON_Value *json;
+			lJSON_Util::Parse(fin,json);
+			
+			{
+				std::unique_ptr<liJSON_Value> value(json);
+				
+				CharacterLoader character_loader(world,projectile_factory);
+				
+				character_loader.Load(ToConstObject(value.get()));
+				
+				character_loader.SetPosition({-130.0,0.0,0.0});
+				character_loader.SetOrientation({{0.0,1.0,0.0},PI/2.0});
+				character_loader.SetSpecies(1);
+				
+				Character *test_character = character_loader.Build();
+				
+				AIEntity *ninja_ai = new AIEntity(*test_character);
+				ninja_ai->SetBehavior(behavior_loader.GetBehavior("enemy_behavior"));
+				
+				entity_manager.AddCharacterFilter([ninja_ai](Character *character)
+					{
+						ninja_ai->percept.CheckCharacter(character);
+					}
+				);
+				
+				entity_manager.AddEntity(ninja_ai);
+				entity_manager.AddCharacter(test_character);
+			}
+		}
 		
-		btRigidBody *ai_rigid_body = AddSphere({-50.0,0.0,-50.0},{0.0,0.0,0.0},5.0,5.0,{0.0,1.0,0.0});
-		BulletVisibleObjectState *ai_character_visible = new BulletVisibleObjectState(ai_rigid_body);
-		BulletControllable *ai_character_controllable = new BulletControllable(ai_rigid_body);
+		{
+			std::ifstream fin("Content/Entities/Ninja.json");
+			
+			liJSON_Value *json;
+			lJSON_Util::Parse(fin,json);
+			
+			{
+				std::unique_ptr<liJSON_Value> value(json);
+				
+				CharacterLoader character_loader(world,projectile_factory);
+				
+				character_loader.Load(ToConstObject(value.get()));
+				
+				character_loader.SetPosition({-150.0,0.0,0.0});
+				character_loader.SetOrientation({{0.0,1.0,0.0},PI/2.0});
+				character_loader.SetSpecies(1);
+				
+				Character *test_character = character_loader.Build();
+				
+				AIEntity *ninja_ai = new AIEntity(*test_character);
+				ninja_ai->SetBehavior(behavior_loader.GetBehavior("enemy_behavior"));
+				
+				entity_manager.AddCharacterFilter([ninja_ai](Character *character)
+					{
+						ninja_ai->percept.CheckCharacter(character);
+					}
+				);
+				
+				entity_manager.AddEntity(ninja_ai);
+				entity_manager.AddCharacter(test_character);
+			}
+		}
 		
-		Character *ai_test_character = new Character(ai_character_visible,"soldier.mesh",ai_character_controllable);
-		ai_test_character->AddObserver(observer_factory.CreateCharacterObserver());
+		{
+			std::ifstream fin("Content/Entities/Ninja.json");
+			
+			liJSON_Value *json;
+			lJSON_Util::Parse(fin,json);
+			
+			{
+				std::unique_ptr<liJSON_Value> value(json);
+				
+				CharacterLoader character_loader(world,projectile_factory);
+				
+				character_loader.Load(ToConstObject(value.get()));
+				
+				character_loader.SetPosition({-150.0,0.0,10.0});
+				character_loader.SetOrientation({{0.0,1.0,0.0},PI/2.0});
+				character_loader.SetSpecies(1);
+				
+				Character *test_character = character_loader.Build();
+				
+				AIEntity *ninja_ai = new AIEntity(*test_character);
+				ninja_ai->SetBehavior(behavior_loader.GetBehavior("enemy_behavior"));
+				
+				entity_manager.AddCharacterFilter([ninja_ai](Character *character)
+					{
+						ninja_ai->percept.CheckCharacter(character);
+					}
+				);
+				
+				entity_manager.AddEntity(ninja_ai);
+				entity_manager.AddCharacter(test_character);
+			}
+		}
 		
-		entity_manager.AddEntity(ai_test_character);
+		{
+			std::ifstream fin("Content/Entities/Ninja.json");
+			
+			liJSON_Value *json;
+			lJSON_Util::Parse(fin,json);
+			
+			{
+				std::unique_ptr<liJSON_Value> value(json);
+				
+				CharacterLoader character_loader(world,projectile_factory);
+				
+				character_loader.Load(ToConstObject(value.get()));
+				
+				character_loader.SetPosition({-150.0,0.0,-10.0});
+				character_loader.SetOrientation({{0.0,1.0,0.0},PI/2.0});
+				character_loader.SetSpecies(1);
+				
+				Character *test_character = character_loader.Build();
+				
+				AIEntity *ninja_ai = new AIEntity(*test_character);
+				ninja_ai->SetBehavior(behavior_loader.GetBehavior("enemy_behavior"));
+				
+				entity_manager.AddCharacterFilter([ninja_ai](Character *character)
+					{
+						ninja_ai->percept.CheckCharacter(character);
+					}
+				);
+				
+				entity_manager.AddEntity(ninja_ai);
+				entity_manager.AddCharacter(test_character);
+			}
+		}
 		
-		ai = std::unique_ptr<AIController>(new AIController(*ai_test_character,*ai_character_controllable));
-		ai->SetBehavior(behavior_loader.GetBehavior("squadmate_behavior"));
+		{
+			std::ifstream fin("Content/Entities/Soldier.json");
+			
+			liJSON_Value *json;
+			lJSON_Util::Parse(fin,json);
+			{
+				std::unique_ptr<liJSON_Value> value(json);
+				
+				CharacterLoader character_loader(world,projectile_factory);
+				
+				character_loader.Load(ToConstObject(value.get()));
+				
+				character_loader.SetPosition({-30.0,0.0,-30.0});
+				character_loader.SetSpecies(0);
+				
+				Character *ai_test_character  = character_loader.Build();
+				
+				AIEntity *ai = new AIEntity(*ai_test_character);
+				ai->SetBehavior(behavior_loader.GetBehavior("squadmate_behavior"));
+				
+				entity_manager.AddCharacterFilter([ai](Character *character)
+					{
+						ai->percept.CheckCharacter(character);
+					}
+				);
+				
+				entity_manager.AddEntity(ai);
+				entity_manager.AddCharacter(ai_test_character);
+			}
+		}
 		
 		behavior_loader.LoadBehaviors();
-		
-		Init();
 	}
 	
 	virtual ~GameLoop() override

@@ -16,13 +16,27 @@ private:
 	private:
 		btDynamicsWorld &dynamics_world;
 		
+		void DeleteCollisionShape(btCollisionShape *collision_shape)
+		{
+			if(collision_shape->isCompound())
+			{
+				btCompoundShape *compound_shape = (btCompoundShape *)collision_shape;
+				for(int i=0;i < compound_shape->getNumChildShapes();i++)
+				{
+					DeleteCollisionShape(compound_shape->getChildShape(i));
+				}
+			}
+			
+			delete collision_shape;
+		}
+		
 	public:
 		
 		void operator() (btRigidBody *rigid_body)
 		{
 			dynamics_world.removeRigidBody(rigid_body);
 			
-			delete rigid_body->getCollisionShape();
+			DeleteCollisionShape(rigid_body->getCollisionShape());
 			delete rigid_body->getMotionState();
 		}
 		
@@ -57,7 +71,7 @@ public:
 		dynamics_world->stepSimulation(dt);
 	}
 	
-	BulletWorldWrapper(const btVector3 &gravity = btVector3(0.0,-10.0,0.0));
+	BulletWorldWrapper(const btVector3 &gravity = btVector3(0.0,5.0*-10.0,0.0));
 	
 	~BulletWorldWrapper()
 	{}

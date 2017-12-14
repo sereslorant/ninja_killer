@@ -32,7 +32,7 @@ public:
 		{
 			return FAILED;
 		}
-		else if(found_not_successful)
+		else if(!found_not_successful)
 		{
 			return SUCCEEDED;
 		}

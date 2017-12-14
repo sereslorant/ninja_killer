@@ -1,7 +1,10 @@
 #ifndef LOOKING_OBJECT_H
 #define LOOKING_OBJECT_H
 
+#include <LinearMath/btVector3.h>
 #include <LinearMath/btQuaternion.h>
+
+#include <LinearMath/btTransform.h>
 
 class ILookController
 {
@@ -26,6 +29,11 @@ public:
 	const btQuaternion &GetLookOrientation()
 	{
 		return look_orientation;
+	}
+	
+	btVector3 GetLookDirection()
+	{
+		return btTransform(look_orientation)*btVector3(0.0,0.0,1.0);
 	}
 	
 	void SetController(ILookController *new_controller)

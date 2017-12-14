@@ -25,7 +25,7 @@ public:
 	{}
 };
 
-struct TargetMovementState
+struct MovementState
 {
 	btVector3 velocity;
 	btScalar yaw;
@@ -37,7 +37,7 @@ public:
 	
 	virtual bool IsMoving() = 0;
 	
-	virtual TargetMovementState CalculateTargetState() = 0;
+	virtual MovementState CalculateTargetState(const MovementState &current_state) = 0;
 	
 	IMovementController()
 	{}
@@ -49,7 +49,7 @@ public:
 class MovingObject
 {
 protected:
-	std::unique_ptr<IControllable> object_state;
+	std::unique_ptr<IControllable> controllable;
 	
 	PIController vel_x_controller;
 	PIController vel_z_controller;
@@ -74,7 +74,7 @@ public:
 	
 	float GetYaw()
 	{
-		return object_state->GetYaw();
+		return controllable->GetYaw();
 	}
 	
 	virtual void Step()
@@ -82,17 +82,17 @@ public:
 		if(controller == nullptr)
 			{return;}
 		
-		TargetMovementState target_state = controller->CalculateTargetState();
+		MovementState target_state = controller->CalculateTargetState({controllable->GetVelocity(),controllable->GetYaw()});
 		
 		target_state.velocity *= speed;
 		
-		float vel_error_x = target_state.velocity[0] - object_state->GetVelocity()[0];
-		float vel_error_z = target_state.velocity[2] - object_state->GetVelocity()[2];
-		object_state->ApplyForce({vel_x_controller.GetSignal(vel_error_x),0.0,vel_z_controller.GetSignal(vel_error_z)});
+		float vel_error_x = target_state.velocity[0] - controllable->GetVelocity()[0];
+		float vel_error_z = target_state.velocity[2] - controllable->GetVelocity()[2];
+		controllable->ApplyForce({vel_x_controller.GetSignal(vel_error_x),0.0,vel_z_controller.GetSignal(vel_error_z)});
 		
-		float yaw_error = GetDeltaAngle(object_state->GetYaw(),target_state.yaw);
+		float yaw_error = GetDeltaAngle(controllable->GetYaw(),target_state.yaw);
 		float yaw_signal = yaw_controller.GetSignal(yaw_error);
-		object_state->SetOrientation({0.0,1.0,0.0},yaw_signal);
+		controllable->SetOrientation({0.0,1.0,0.0},yaw_signal);
 	}
 	
 	void SetController(IMovementController *new_controller)
@@ -102,7 +102,7 @@ public:
 	}
 	
 	MovingObject(IControllable *p_controllable)
-		:object_state(p_controllable),
+		:controllable(p_controllable),
 			vel_x_controller(75.0,(1.0/60.0)/(1.0/30.0)),
 			vel_z_controller(75.0,(1.0/60.0)/(1.0/30.0)),
 			yaw_controller(50.0,(1.0/60.0)/(1.0/50.0))

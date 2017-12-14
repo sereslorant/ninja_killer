@@ -3,3 +3,6 @@ include_directories(../GameLogic/)
 
 add_executable(ControllerAngleTestExec ControllerAngleTest.cpp)
 target_link_libraries(ControllerAngleTestExec GameLogic)
+
+add_executable(CompositeBehaviorTestExec CompositeBehaviorTest.cpp)
+target_link_libraries(CompositeBehaviorTestExec GameLogic)

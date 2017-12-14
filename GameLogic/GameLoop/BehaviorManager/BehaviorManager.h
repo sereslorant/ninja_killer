@@ -61,7 +61,8 @@ public:
 	{
 		std::map<std::string,std::string> behavior_manifest =
 		{
-			{"squadmate_behavior","Content/Behaviors/Squadmate.json"}
+			{"squadmate_behavior","Content/Behaviors/Squadmate.json"},
+			{"enemy_behavior","Content/Behaviors/Enemy.json"}
 		};
 		
 		for(auto &entry : behavior_manifest)
@@ -77,7 +78,7 @@ public:
 				IBehavior<AIContext> *behavior = LoadBehavior(root);
 				behaviors[entry.first] = ProxyBehavior<AIContext>(behavior);
 				
-				owned_behaviors.emplace_back(behavior);
+				//owned_behaviors.emplace_back(behavior);
 			}
 			
 			delete value;

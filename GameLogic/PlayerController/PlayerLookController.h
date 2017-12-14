@@ -8,7 +8,7 @@
 class PlayerLookController : public ILookController
 {
 private:
-	btQuaternion look_orientation = btQuaternion({0.0,1.0,0.0},0.0);
+	//btQuaternion look_orientation = btQuaternion({0.0,1.0,0.0},0.0);
 	
 	EnhancedController controller;
 	

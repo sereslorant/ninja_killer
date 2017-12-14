@@ -8,6 +8,13 @@
 #include <OGRE/OgreEntity.h>
 #include <OGRE/OgreSceneNode.h>
 
+
+
+#include "OgreAnimation/CharacterAnimator.h"
+
+#include "AnimationState/CompositeAnimationState.h"
+#include "AnimationState/PrimitiveAnimationState.h"
+
 class OgreCharacterView : public ICharacterObserver
 {
 private:
@@ -18,85 +25,15 @@ private:
 	Ogre::SceneNode *character_entity_node = nullptr;
 	Ogre::SceneNode &entity_node;
 	
-	enum MovementState
-	{
-		STANDING,
-		MOVING,
-	};
+	CharacterAnimator leg_animator;
 	
-	MovementState leg_movement_state = STANDING;
+	std::list<std::unique_ptr<IAnimationState> > leg_children;
+	IAnimationState *leg_root;
 	
-	void StepLeg()
-	{
-		float dt = 1.0/60.0;
-		float anim_speed = 2.0;
-		
-		switch(leg_movement_state)
-		{
-		case MOVING:
-			character_entity->getAnimationState("leg_run")->addTime(dt*anim_speed);
-			break;
-		case STANDING:
-			character_entity->getAnimationState("leg_stand")->addTime(dt*anim_speed);
-			break;
-		}
-	}
+	CharacterAnimator up_animator;
 	
-	MovementState up_movement_state = STANDING;
-	bool aim_state = false;
-	bool shoot_state = false;
-	
-	void StepUpperBody()
-	{
-		
-		
-		float dt = 1.0/60.0;
-		float shoot_speed = 2.5;
-		float anim_speed = 2.0;
-		
-		if(shoot_state)
-		{
-			character_entity->getAnimationState("up_shoot")->addTime(dt*shoot_speed);
-		}
-		else if(aim_state)
-		{
-			character_entity->getAnimationState("up_weapon_hold")->addTime(dt*anim_speed);
-		}
-		else
-		{
-			switch(up_movement_state)
-			{
-			case MOVING:
-				character_entity->getAnimationState("up_run")->addTime(dt*anim_speed);
-				break;
-			case STANDING:
-				character_entity->getAnimationState("up_stand")->addTime(dt*anim_speed);
-				break;
-			}
-		}
-		/*
-		switch(upper_body_state)
-		{
-		case SHOOTING:
-			character_entity->getAnimationState("up_shoot")->addTime(dt*shoot_speed);
-			break;
-		case AIMING:
-			character_entity->getAnimationState("up_weapon_hold")->addTime(dt*anim_speed);
-			break;
-		case IDLE:
-			switch(up_movement_state)
-			{
-			case MOVING:
-				character_entity->getAnimationState("up_run")->addTime(dt*anim_speed);
-				break;
-			case STANDING:
-				character_entity->getAnimationState("up_stand")->addTime(dt*anim_speed);
-				break;
-			}
-			break;
-		}
-		*/
-	}
+	std::list<std::unique_ptr<IAnimationState> > up_children;
+	IAnimationState *up_root;
 	
 public:
 	
@@ -118,7 +55,31 @@ public:
 		
 		entity_node.addChild(character_entity_node);
 		
-		OnStanding();
+		leg_animator = entity_repository.GetLegAnimator(name);
+		up_animator = entity_repository.GetBodyAnimator(name);
+		
+		leg_children.clear();
+		up_children.clear();
+		
+		auto leg_anim_state = entity_repository.GetLegAnimState(name);
+		if(leg_anim_state != nullptr)
+		{
+			leg_root = leg_anim_state->Clone(leg_children);
+		}
+		else
+		{
+			leg_root = nullptr;
+		}
+		
+		auto up_anim_state = entity_repository.GetBodyAnimState(name);
+		if(up_anim_state != nullptr)
+		{
+			up_root = up_anim_state->Clone(up_children);
+		}
+		else
+		{
+			up_root = nullptr;
+		}
 	}
 	
 	virtual void OnPositionChanged(float x,float y,float z) override
@@ -133,183 +94,111 @@ public:
 	
 	virtual void OnStanding() override
 	{
-		if(leg_movement_state == MOVING || !initialized)
-		{
-			character_entity->getAnimationState("leg_run")->setEnabled(false);
-			
-			character_entity->getAnimationState("leg_stand")->setEnabled(true);
-			character_entity->getAnimationState("leg_stand")->setWeight(1);
-			character_entity->getAnimationState("leg_stand")->setTimePosition(0.0);
-			
-			leg_movement_state = STANDING;
-		}
+		if(leg_root != nullptr)
+		{leg_root->UpdateState("OnStanding");}
 		
-		if(up_movement_state == MOVING || !initialized)
-		{
-			initialized = true;
-			
-			if(!aim_state)
-			{
-				character_entity->getAnimationState("up_run")->setEnabled(false);
-				
-				character_entity->getAnimationState("up_stand")->setEnabled(true);
-				character_entity->getAnimationState("up_stand")->setWeight(1);
-				character_entity->getAnimationState("up_stand")->setTimePosition(0.0);
-			}
-			
-			up_movement_state = STANDING;
-		}
+		if(up_root != nullptr)
+		{up_root->UpdateState("OnStanding");}
 	}
 	
 	virtual void OnMoving() override
 	{
-		if(leg_movement_state == STANDING || !initialized)
-		{
-			character_entity->getAnimationState("leg_stand")->setEnabled(false);
-			
-			character_entity->getAnimationState("leg_run")->setEnabled(true);
-			character_entity->getAnimationState("leg_run")->setWeight(1);
-			character_entity->getAnimationState("leg_run")->setTimePosition(0.0);
-			
-			leg_movement_state = MOVING;
-		}
+		if(leg_root != nullptr)
+		{leg_root->UpdateState("OnMoving");}
 		
-		if(up_movement_state == STANDING || !initialized)
-		{
-			initialized = true;
-			
-			if(!aim_state)
-			{
-				character_entity->getAnimationState("up_stand")->setEnabled(false);
-				
-				character_entity->getAnimationState("up_run")->setEnabled(true);
-				character_entity->getAnimationState("up_run")->setWeight(1);
-				character_entity->getAnimationState("up_run")->setTimePosition(0.0);
-			}
-			
-			up_movement_state = MOVING;
-		}
+		if(up_root != nullptr)
+		{up_root->UpdateState("OnMoving");}
 	}
 	
 	virtual void OnAiming() override
 	{
-		if(!aim_state || !initialized)
-		{
-			initialized = true;
-			
-			if(leg_movement_state == MOVING)
-			{character_entity->getAnimationState("up_run")->setEnabled(false);}
-			else
-			{character_entity->getAnimationState("up_stand")->setEnabled(false);}
-			
-			character_entity->getAnimationState("up_weapon_hold")->setEnabled(true);
-			character_entity->getAnimationState("up_weapon_hold")->setWeight(1);
-			character_entity->getAnimationState("up_weapon_hold")->setTimePosition(0.0);
-			
-			aim_state = true;
-		}
+		if(leg_root != nullptr)
+		{leg_root->UpdateState("OnAiming");}
+		
+		if(up_root != nullptr)
+		{up_root->UpdateState("OnAiming");}
 	}
 	
 	virtual void OnAimReleased() override
 	{
-		if(aim_state || !initialized)
-		{
-			initialized = true;
-			
-			character_entity->getAnimationState("up_weapon_hold")->setEnabled(false);
-			
-			if(up_movement_state == MOVING)
-			{
-				character_entity->getAnimationState("up_run")->setEnabled(true);
-				character_entity->getAnimationState("up_run")->setWeight(1);
-				character_entity->getAnimationState("up_run")->setTimePosition(0.0);
-			}
-			else
-			{
-				character_entity->getAnimationState("up_stand")->setEnabled(true);
-				character_entity->getAnimationState("up_stand")->setWeight(1);
-				character_entity->getAnimationState("up_stand")->setTimePosition(0.0);
-			}
-			
-			aim_state = false;
-		}
+		if(leg_root != nullptr)
+		{leg_root->UpdateState("OnAimReleased");}
+		
+		if(up_root != nullptr)
+		{up_root->UpdateState("OnAimReleased");}
+	}
+	
+	virtual void OnMelee() override
+	{
+		if(leg_root != nullptr)
+		{leg_root->UpdateState("OnMelee");}
+		
+		if(up_root != nullptr)
+		{up_root->UpdateState("OnMelee");}
+		
+	}
+	
+	virtual void OnMeleeReleased() override
+	{
+		if(leg_root != nullptr)
+		{leg_root->UpdateState("OnMeleeReleased");}
+		
+		if(up_root != nullptr)
+		{up_root->UpdateState("OnMeleeReleased");}
 	}
 	
 	virtual void OnShooting() override
 	{
-		if(!shoot_state || !initialized)
-		{
-			initialized = true;
+		if(leg_root != nullptr)
+		{leg_root->UpdateState("OnShooting");}
+		
+		if(up_root != nullptr)
+		{up_root->UpdateState("OnShooting");}
+		/*
+		if(leg_root != nullptr)
+		{leg_root->UpdateState("OnDying");}
 			
-			if(aim_state)
-			{
-				character_entity->getAnimationState("up_weapon_hold")->setEnabled(false);
-			}
-			else
-			{
-				if(up_movement_state == MOVING)
-				{
-					character_entity->getAnimationState("up_run")->setEnabled(false);
-				}
-				else
-				{
-					character_entity->getAnimationState("up_stand")->setEnabled(false);
-				}
-			}
-			
-			character_entity->getAnimationState("up_shoot")->setEnabled(true);
-			character_entity->getAnimationState("up_shoot")->setWeight(1);
-			character_entity->getAnimationState("up_shoot")->setTimePosition(0.0);
-			
-			shoot_state = true;
-		}
+		if(up_root != nullptr)
+		{up_root->UpdateState("OnDying");}
+		*/
 	}
 	
 	virtual void OnShootingReleased() override
 	{
-		if(shoot_state || !initialized)
-		{
-			initialized = true;
+		if(leg_root != nullptr)
+		{leg_root->UpdateState("OnShootingReleased");}
+		
+		if(up_root != nullptr)
+		{up_root->UpdateState("OnShootingReleased");}
+	}
+	
+	virtual void OnDying() override
+	{
+		if(leg_root != nullptr)
+		{leg_root->UpdateState("OnDying");}
 			
-			character_entity->getAnimationState("up_shoot")->setEnabled(false);
-			
-			if(aim_state)
-			{
-				character_entity->getAnimationState("up_weapon_hold")->setEnabled(true);
-				character_entity->getAnimationState("up_weapon_hold")->setWeight(1);
-				character_entity->getAnimationState("up_weapon_hold")->setTimePosition(0.0);
-			}
-			else
-			{
-				if(up_movement_state == MOVING)
-				{
-					character_entity->getAnimationState("up_run")->setEnabled(true);
-					character_entity->getAnimationState("up_run")->setWeight(1);
-					character_entity->getAnimationState("up_run")->setTimePosition(0.0);
-				}
-				else
-				{
-					character_entity->getAnimationState("up_stand")->setEnabled(true);
-					character_entity->getAnimationState("up_stand")->setWeight(1);
-					character_entity->getAnimationState("up_stand")->setTimePosition(0.0);
-				}
-			}
-			
-			shoot_state = false;
-		}
+		if(up_root != nullptr)
+		{up_root->UpdateState("OnDying");}
 	}
 	
 	void Update()
 	{
-		StepLeg();
-		StepUpperBody();
+		if(leg_root != nullptr)
+		{
+			leg_animator.Visit(*leg_root,character_entity);
+			leg_animator.Animate(character_entity);
+		}
+		
+		if(up_root != nullptr)
+		{
+			up_animator.Visit(*up_root,character_entity);
+			up_animator.Animate(character_entity);
+		}
 	}
 	
 	OgreCharacterView(OgreEntityRepository &p_entity_repository,Ogre::SceneNode &p_entity_node)
 		:entity_repository(p_entity_repository),entity_node(p_entity_node)
-	{
-		//OnStanding();
-	}
+	{}
 	
 	virtual ~OgreCharacterView() override
 	{}

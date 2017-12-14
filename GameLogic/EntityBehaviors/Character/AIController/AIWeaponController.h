@@ -5,16 +5,33 @@
 
 class AIWeaponController : public IWeaponController
 {
+private:
+	bool aiming = false;
+	bool shooting = false;
+	bool melee = false;
+	
 public:
 	
 	virtual bool IsAiming() const override
 	{
-		return true;
+		return aiming;
 	}
 	
 	virtual bool IsShooting() const override
 	{
-		return false;
+		return shooting;
+	}
+	
+	virtual bool IsMelee() const override
+	{
+		return melee;
+	}
+	
+	void SetState(bool new_aiming,bool new_shooting,bool new_melee)
+	{
+		aiming = new_aiming;
+		shooting = new_shooting;
+		melee = new_melee;
 	}
 	
 	AIWeaponController()

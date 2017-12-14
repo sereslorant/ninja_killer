@@ -10,7 +10,6 @@
 class PlayerMovementController : public IMovementController
 {
 protected:
-	IControllable &controllable;
 	EnhancedController controller;
 	
 public:
@@ -20,13 +19,13 @@ public:
 		return controller.Moving();
 	}
 	
-	virtual TargetMovementState CalculateTargetState() override
+	virtual MovementState CalculateTargetState(const MovementState &current_state) override
 	{
-		TargetMovementState result = {};
+		MovementState result = {};
 		
 		btVector3 displacement(0.0,0.0,0.0);
 		
-		btQuaternion orientation({0.0,1.0,0.0},controllable.GetYaw());
+		btQuaternion orientation({0.0,1.0,0.0},current_state.yaw);
 		
 		const btVector3 forward	= btTransform(orientation) * btVector3( 0.0,0.0,1.0);
 		const btVector3 right	= btTransform(orientation) * btVector3(-1.0,0.0,0.0);
@@ -65,14 +64,14 @@ public:
 		}
 		else
 		{
-			result.yaw = controllable.GetYaw();
+			result.yaw = current_state.yaw;
 		}
 		
 		return result;
 	}
 	
-	PlayerMovementController(IControllable &p_controllable,const IController &p_controller)
-		:controllable(p_controllable),controller(p_controller)
+	PlayerMovementController(const IController &p_controller)
+		:controller(p_controller)
 	{}
 	
 	virtual ~PlayerMovementController() override

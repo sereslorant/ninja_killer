@@ -27,8 +27,13 @@ public:
 	virtual void OnAiming() = 0;
 	virtual void OnAimReleased() = 0;
 	
+	virtual void OnMelee() = 0;
+	virtual void OnMeleeReleased() = 0;
+	
 	virtual void OnShooting() = 0;
 	virtual void OnShootingReleased() = 0;
+	
+	virtual void OnDying() = 0;
 	
 	ICharacterObserver()
 	{}

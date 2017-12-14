@@ -1,4 +1,4 @@
-#ifndef PRoXY_BEHAVIOR_H
+#ifndef PROXY_BEHAVIOR_H
 #define PROXY_BEHAVIOR_H
 
 #include "../IBehavior.h"

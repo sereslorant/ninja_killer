@@ -1,0 +1,91 @@
+
+{
+	"Type":"SequenceBehavior",
+	"Children" :
+	[
+		{
+			"Type":"AICharacterWithinRange",
+			"Character":{"IsNamed":false,"Name":"closest_enemy"},
+			"Radius":80.0
+		},
+		{
+			"Type" : "ParallelBehavior",
+			"Children" :
+			[
+				{
+					"Type":"LiarBehavior",
+					"State":"SUCCEEDED",
+					"Child":
+					{
+						"Type":"AITurnTowardsCharacter",
+						"Character":{"IsNamed":false,"Name":"closest_enemy"},
+						"Epsilon":0.0001
+					}
+				},
+				{
+					"Type" : "SelectorBehavior",
+					"Children" :
+					[
+						{
+							"Type" : "SequenceBehavior",
+							"Children" :
+							[
+								{
+									"Type":"AICharacterWithinRange",
+									"Character":{"IsNamed":false,"Name":"closest_enemy"},
+									"Radius":60.0
+								},
+								{
+									"Type" : "ParallelBehavior",
+									"Children" :[
+										{
+											"Type":"LiarBehavior",
+											"State":"SUCCEEDED",
+											"Child":{
+												"Type":"AIFollowCharacter",
+												"Character":{"IsNamed":false,"Name":"closest_enemy"},
+												"Radius":15.0
+											}
+										},
+										{
+											"Type":"LiarBehavior",
+											"State":"SUCCEEDED",
+											"Child" : {
+												"Type" : "SequenceBehavior",
+												"Children" :
+												[
+													{
+														"Type":"AICharacterWithinRange",
+														"Character":{"IsNamed":false,"Name":"closest_enemy"},
+														"Radius":16.0
+													},
+													{
+														"Type":"AIMelee"
+													}
+												]
+											}
+										}
+									]
+								}
+							]
+						},
+						{
+							"Type" : "SequenceBehavior",
+							"Children" :
+							[
+								{
+									"Type":"AILookAtCharacter",
+									"Character":{"IsNamed":false,"Name":"closest_enemy"}
+								},
+								{
+									"Type" : "AIShoot"
+								}
+							]
+						}
+					]
+				}
+			]
+		}
+	]
+}
+

@@ -29,7 +29,7 @@ public:
 	}
 	
 	TrackCharacterBehavior(/*Camera &p_camera,*/Character &p_character)
-		:point_above_shoulder(p_character,0.0 + PI/2.0 + 3.0*PI/8.0,17.5,9.0),look_at_point(p_character),
+		:point_above_shoulder(p_character,0.0 + PI/2.0 + 3.0*PI/8.0,17.5,7.0),look_at_point(p_character),
 		follow_character(/*p_camera,*/point_above_shoulder),look_where_character_looks(/*p_camera,*/look_at_point),
 		follow_and_lookat({{&follow_character,&look_where_character_looks}})
 	{}

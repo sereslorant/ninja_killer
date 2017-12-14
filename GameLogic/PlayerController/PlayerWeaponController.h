@@ -22,6 +22,11 @@ public:
 		return controller.Shoot();
 	}
 	
+	virtual bool IsMelee() const override
+	{
+		return false;
+	}
+	
 	PlayerWeaponController(const IController &p_controller)
 		:controller(p_controller)
 	{}
