@@ -7,12 +7,12 @@
 #include "BulletSphereLoader.h"
 #include "BulletCompoundLoader.h"
 
-#include <Physics/BulletBuilder/BulletBodyBuilder.h>
+#include <Physics/PhysBuilder/PhysBodyBuilder.h>
 
 class BulletBodyLoader
 {
 private:
-	BulletBodyBuilder &body_builder;
+	PhysBodyBuilder &body_builder;
 	
 public:
 	
@@ -55,7 +55,7 @@ public:
 		return body_builder.Build();
 	}
 	
-	BulletBodyLoader(BulletBodyBuilder &p_body_builder)
+	BulletBodyLoader(PhysBodyBuilder &p_body_builder)
 		:body_builder(p_body_builder)
 	{}
 };

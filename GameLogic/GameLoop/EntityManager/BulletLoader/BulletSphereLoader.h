@@ -6,7 +6,7 @@
 class BulletSphereLoader
 {
 private:
-	BulletSphereBuilder &sphere_builder;
+	PhysSphereBuilder &sphere_builder;
 	
 public:
 	
@@ -28,7 +28,7 @@ public:
 		sphere_builder.Build();
 	}
 	
-	BulletSphereLoader(BulletSphereBuilder &p_sphere_builder)
+	BulletSphereLoader(PhysSphereBuilder &p_sphere_builder)
 		:sphere_builder(p_sphere_builder)
 	{}
 };

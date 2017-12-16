@@ -71,7 +71,7 @@ public:
 class PhysBodyLoader : public IBodyLoader
 {
 private:
-	BulletBodyBuilder &phys_body_builder;
+	PhysBodyBuilder &phys_body_builder;
 	
 public:
 	
@@ -97,7 +97,7 @@ public:
 		return new BulletVisibleObjectState(phys_body_builder.Build());
 	}
 	
-	PhysBodyLoader(BulletBodyBuilder &p_phys_body_builder)
+	PhysBodyLoader(PhysBodyBuilder &p_phys_body_builder)
 		:phys_body_builder(p_phys_body_builder)
 	{}
 };
@@ -106,7 +106,7 @@ class VisibleObjectLoader
 {
 private:
 	VisibleLoader visible_loader;
-	BulletBodyBuilder phys_body_builder;
+	PhysBodyBuilder phys_body_builder;
 	
 	std::unique_ptr<IBodyLoader> body_loader;
 	
@@ -169,7 +169,7 @@ public:
 		return new_visible_object;
 	}
 	
-	VisibleObjectLoader(BulletWorldWrapper &world)
+	VisibleObjectLoader(PhysWorld &world)
 		:phys_body_builder(world)
 	{}
 };

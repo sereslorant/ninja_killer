@@ -25,7 +25,7 @@ btQuaternion BulletLoaderUtil::LoadQuaternion(const liJSON_Object *object)
 	return btQuaternion(axis,angle);
 }
 
-void BulletLoaderUtil::LoadShape(IBulletShapeBuilderFactory &builder_factory,const liJSON_Object *object)
+void BulletLoaderUtil::LoadShape(IPhysShapeBuilderFactory &builder_factory,const liJSON_Object *object)
 {
 	std::string type = ToConstString(object->GetVariable("type"))->GetValue();
 	

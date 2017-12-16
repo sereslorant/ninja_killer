@@ -3,7 +3,7 @@
 
 #include <Entities/Camera.h>
 
-#include <Physics/BulletWorldWrapper.h>
+#include <Physics/PhysWorld.h>
 #include <GameLoop/BehaviorManager/BehaviorManager.h>
 #include <GameLoop/EntityManager/EntityManager.h>
 
@@ -161,13 +161,13 @@ public:
 class ProjectileFactory : public IProjectileFactory
 {
 private:
-	BulletWorldWrapper &world;
+	PhysWorld &world;
 	EntityManager &entity_manager;
 	
 public:
 	virtual void SpawnBullet(const btVector3 &position,const btVector3 &velocity,float radius,unsigned int species) override
 	{
-		BulletBodyBuilder body_builder(world);
+		PhysBodyBuilder body_builder(world);
 		
 		body_builder.CreateSphere().SetRadius(radius).Build();
 		
@@ -198,7 +198,7 @@ public:
 		}
 	}
 	
-	ProjectileFactory(BulletWorldWrapper &p_world,EntityManager &p_entity_manager)
+	ProjectileFactory(PhysWorld &p_world,EntityManager &p_entity_manager)
 		:world(p_world),entity_manager(p_entity_manager)
 	{}
 	virtual ~ProjectileFactory() override
@@ -208,7 +208,7 @@ public:
 class GameLoop : public IGameLoop
 {
 private:
-	BulletWorldWrapper world;
+	PhysWorld world;
 	
 	EntityManager entity_manager;
 	BehaviorManager behavior_loader;

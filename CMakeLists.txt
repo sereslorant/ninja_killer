@@ -24,7 +24,6 @@ add_executable(NinjaKiller OisController.cpp Main.cpp)
 target_link_libraries(NinjaKiller OgreView ${OGRE_LIBRARIES} ${OIS_LIBRARIES} GameLogic)
 
 add_subdirectory(GameLogic)
-add_dependencies(GameLogic bullet3)
 
 add_subdirectory(Test)
 add_subdirectory(lJSON)

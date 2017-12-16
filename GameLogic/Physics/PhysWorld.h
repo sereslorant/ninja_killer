@@ -7,7 +7,7 @@
 
 #include <list>
 
-class BulletWorldWrapper
+class PhysWorld
 {
 private:
 	
@@ -85,9 +85,9 @@ public:
 		dynamics_world->stepSimulation(dt);
 	}
 	
-	BulletWorldWrapper(const btVector3 &gravity = btVector3(0.0,5.0*-10.0,0.0));
+	PhysWorld(const btVector3 &gravity = btVector3(0.0,5.0*-10.0,0.0));
 	
-	~BulletWorldWrapper()
+	~PhysWorld()
 	{}
 	/*
 	 * End of class

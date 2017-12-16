@@ -1,14 +1,14 @@
 #ifndef BULLET_COMPOUND_LOADER_H
 #define BULLET_COMPOUND_LOADER_H
 
-#include <Physics/BulletBuilder/BulletBodyBuilder.h>
+#include <Physics/PhysBuilder/PhysCompositeBuilder.h>
 
 #include "BulletLoaderUtil.h"
 
 class BulletCompoundLoader
 {
 private:
-	BulletCompoundBuilder &compound_builder;
+	PhysCompositeBuilder &compound_builder;
 	
 public:
 	
@@ -34,7 +34,7 @@ public:
 		compound_builder.Build();
 	}
 	
-	BulletCompoundLoader(BulletCompoundBuilder &p_compound_builder)
+	BulletCompoundLoader(PhysCompositeBuilder &p_compound_builder)
 		:compound_builder(p_compound_builder)
 	{}
 };

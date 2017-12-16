@@ -1,14 +1,14 @@
 #ifndef BULLET_BOX_LOADER_H
 #define BULLET_BOX_LOADER_H
 
-#include <Physics/BulletBuilder/BulletBodyBuilder.h>
+#include <Physics/PhysBuilder/PhysBoxBuilder.h>
 
 #include "BulletLoaderUtil.h"
 
 class BulletBoxLoader
 {
 private:
-	BulletBoxBuilder &box_builder;
+	PhysBoxBuilder &box_builder;
 	
 public:
 	
@@ -30,7 +30,7 @@ public:
 		box_builder.Build();
 	}
 	
-	BulletBoxLoader(BulletBoxBuilder &p_box_builder)
+	BulletBoxLoader(PhysBoxBuilder &p_box_builder)
 		:box_builder(p_box_builder)
 	{}
 };

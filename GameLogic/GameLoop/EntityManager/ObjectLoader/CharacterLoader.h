@@ -14,7 +14,7 @@ class CharacterLoader
 {
 private:
 	VisibleLoader visible_loader;
-	BulletBodyBuilder phys_body_builder;
+	PhysBodyBuilder phys_body_builder;
 	BulletBodyLoader phys_body_loader;
 	
 	IProjectileFactory &projectile_factory;
@@ -75,7 +75,7 @@ public:
 		return new_character;
 	}
 	
-	CharacterLoader(BulletWorldWrapper &world,IProjectileFactory &p_projectile_factory)
+	CharacterLoader(PhysWorld &world,IProjectileFactory &p_projectile_factory)
 		:phys_body_builder(world),phys_body_loader(phys_body_builder),projectile_factory(p_projectile_factory)
 	{}
 };
