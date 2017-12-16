@@ -11,5 +11,4 @@ set(ENTITY_LOADER_SRC	GameLoop/EntityManager/BulletLoader/BulletLoaderUtil.cpp
 					)
 
 add_library(GameLogic ${ENTITIES_SRC} ${PHYSICS_SRC} ${ENTITY_LOADER_SRC} GameLoop/GameFactory.cpp Utils/AngleUtils.cpp)
-target_link_libraries(GameLogic lJSON ${BULLET_LIBRARIES})
-
+target_link_libraries(GameLogic lJSON BulletDynamics BulletCollision LinearMath)
